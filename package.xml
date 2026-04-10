@@ -1,0 +1,40 @@
+<?xml version="1.0"?>
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
+  <name>rec_rep2</name>
+  <version>1.1.0</version>
+  <description>Record and replay Kinova Gen3 motions using ROS2.</description>
+  <maintainer email="pearlda@oregonstate.edu">Damien Pearl</maintainer>
+  <license>MIT</license>
+  
+  <!-- just required for python ament packages -->
+  <buildtool_depend>ament_python</buildtool_depend>
+
+  <!-- Core ROS2 python client library -->
+  <depend>rclpy</depend>
+  
+  <!-- Joint angle readings from the driver -->
+  <depend>sensor_msgs</depend>
+  
+  <!-- JointTrajectory message type for replay -->
+  <depend>trajectory_msgs</depend>
+  
+  <!-- Trigger service for start/stop recording -->
+  <depend>std_srvs</depend>
+  
+  <!-- FollowJointTrajectory action for replay -->
+  <depend>control_msgs</depend>
+  
+  <!--Kinova driver: services and message types -->
+  <depend>kortex_driver</depend>
+  
+  <!-- Test-time linters -->
+  <test_depend>ament_copyright</test_depend>
+  <test_depend>ament_flake8</test_depend>
+  <test_depend>ament_pep257</test_depend>
+  <test_depend>python3-pytest</test_depend>
+
+  <export>
+    <build_type>ament_python</build_type>
+  </export>
+</package>
