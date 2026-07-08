@@ -22,8 +22,8 @@ class MotionReplayer(Node):
     We use the simpler topic interface here.
 
     Reference:
-      control.ros.org/humble/doc/ros2_controllers/
-        joint_trajectory_controller/doc/userdoc.html
+      control.ros.org/humble/doc/ros2_controllers/joint_trajectory_controller/doc/userdoc.html 
+      https://control.ros.org/jazzy/doc/ros2_controllers/joint_trajectory_controller/doc/userdoc.html 
     """
 
     def __init__(self):
