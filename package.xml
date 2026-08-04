@@ -21,13 +21,17 @@
   
   <!-- Trigger service for start/stop recording -->
   <depend>std_srvs</depend>
+
+  <!-- ROS bag reading/writing via classic_bags -->
+  <depend>classic_bags</depend>
+  <depend>rosbag2_py</depend>
   
   <!-- FollowJointTrajectory action for replay -->
   <depend>control_msgs</depend>
   
   <!--Kinova driver: services and message types -->
-  <depend>kortex_driver</depend>
-  
+  <!-- <depend>kortex_driver</depend>
+   -->
   <!-- Test-time linters -->
   <test_depend>ament_copyright</test_depend>
   <test_depend>ament_flake8</test_depend>

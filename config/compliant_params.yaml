@@ -1,0 +1,120 @@
+# compliant_params.yaml
+#
+# Parameters for the compliant torque posing mode (CompliantTorqueMode).
+# Pass to the recorder node with:
+#   ros2 run rec_rep2 recorder --ros-args --params-file <path>/compliant_params.yaml
+# or include via a launch file parameter.
+#
+# All values are conservative defaults suitable for a first power-on.
+# Read the tuning guide in docs/compliant_posing.md before adjusting.
+
+motion_recorder:
+  ros__parameters:
+
+    # ── Observer gains ─────────────────────────────────────────────────────────
+    #
+    # observer_L  (rad/s, per joint)
+    #   Dynamic friction observer bandwidth.  Controls how quickly the
+    #   observer tracks changes in friction.
+    #   - Start here: [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
+    #   - Increase in steps of 1.0 if the arm still feels sticky.
+    #   - Decrease (or set to 0.5) if vibration appears during motion.
+    #   - Typical usable range: 0.5 – 8.0 rad/s.
+    compliant_observer_L: [2.0, 2.0, 2.0, 2.0, 2.0, 2.0, 2.0]
+
+    # observer_Lp  (rad/s, per joint)
+    #   Proportional correction gain.  Stiffens convergence at rest
+    #   (reduces stiction feel) without raising the noise floor as sharply
+    #   as increasing L alone.
+    #   - Start here: 0.5 × L
+    #   - Increase if stiction at joint stops is still noticeable.
+    #   - Keep ≤ L; if Lp > L the observer can become under-damped.
+    compliant_observer_Lp: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+
+    # ── Viscous damping ────────────────────────────────────────────────────────
+    #
+    # damping_b  (Nm·s/rad, per joint)
+    #   Adds a viscous resistance proportional to joint velocity.
+    #   Prevents the arm from swinging freely after release and improves
+    #   the "feel" during slow guiding.
+    #   - Start here: [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
+    #   - Increase for a heavier / more damped feel.
+    #   - Decrease if the arm feels sluggish to move.
+    #   - Typical usable range: 0.1 – 2.0 Nm·s/rad.
+    compliant_damping_b: [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5]
+
+    # ── Safety: torque saturation ──────────────────────────────────────────────
+    #
+    # torque_limits  (Nm, per joint — absolute value)
+    #   Hard clamp applied to every torque command before it is sent.
+    #   A tripped clamp is SILENT (not a fault); it just limits the output.
+    #   These defaults are 40 % of Gen3 rated torques:
+    #     Joints 1-3 (large modules, rated ~56 Nm): 22.4 Nm
+    #     Joints 4-7 (small modules, rated ~28 Nm): 11.2 Nm
+    #   Do not increase beyond 60 % of rated without a full risk assessment.
+    compliant_torque_limits: [22.4, 22.4, 22.4, 11.2, 11.2, 11.2, 11.2]
+
+    # ── Safety: velocity watchdog ──────────────────────────────────────────────
+    #
+    # velocity_limits_rad_s  (rad/s, per joint)
+    #   If ANY joint exceeds its limit the controller immediately sends zero
+    #   torques, latches into a fault state, and logs:
+    #     SAFETY TRIP — joint N velocity X.XXXX rad/s exceeds ±Y.YYYY rad/s
+    #   After investigating the cause, call ~/reset_fault to clear the latch.
+    #   Default (~45 deg/s) is generous for hand-guiding but well below the
+    #   Gen3 maximum (~70 deg/s for large joints).
+    #   Reduce if a joint tends to swing fast when released.
+    compliant_velocity_limits_rad_s: [0.8, 0.8, 0.8, 0.8, 0.8, 0.8, 0.8]
+
+    # ── Safety: loop-rate watchdog ─────────────────────────────────────────────
+    #
+    # max_missed_cycles  (integer)
+    #   Fault after this many consecutive control cycles that each took
+    #   longer than 3 × dt_nominal (dt_nominal = 1 / control_rate_hz).
+    #   At 200 Hz, 3 × dt_nominal = 15 ms; 10 misses = 150 ms of jitter
+    #   before a fault.  The Kortex firmware will also independently fault
+    #   the arm if Refresh() is not called for ~100 ms, so this watchdog
+    #   fires first in most over-run scenarios.
+    compliant_max_missed_cycles: 10
+
+    # ── Control loop rate ──────────────────────────────────────────────────────
+    #
+    # control_rate_hz  (Hz)
+    #   Target rate for BaseCyclic.Refresh() calls.
+    #   200 Hz is adequate for kinesthetic teaching (human hand motions are
+    #   <10 Hz).  Do not increase above 300 Hz in Python without profiling
+    #   the loop; GIL contention can cause the loop-rate watchdog to trip.
+    compliant_control_rate_hz: 200
+
+    # ── Gravity-compensation sign correction ────────────────────────────────────
+    #
+    # gravity_sign  (±1.0, per joint)
+    #   Corrects for any mismatch between Kortex encoder sign conventions
+    #   and the URDF axis directions used by Pinocchio.
+    #   Verification procedure (do this before first use):
+    #     1. Hold the arm in a non-singular pose with the e-stop nearby.
+    #     2. Enter compliant mode with L=0, Lp=0, b=0 (pure gravity comp).
+    #     3. For each joint individually: check it holds position.
+    #        If a joint drifts downward, flip its sign here (1.0 → -1.0).
+    #   Default all +1.0 matches the standard kortex_description URDF.
+    compliant_gravity_sign: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+
+    # ── URDF path override ─────────────────────────────────────────────────────
+    #
+    # urdf_path  (string, optional)
+    #   Explicit path to a pre-built gen3.urdf for Pinocchio to load.
+    #   If empty (default), the node tries:
+    #     1. The robot_description ROS parameter (set by the kortex launch).
+    #     2. Running `xacro gen3.xacro dof:=7 vision:=false` from
+    #        kortex_description's share directory.
+    #   Set this if xacro is not on PATH or kortex_description is not
+    #   installed in the ROS environment.
+    compliant_urdf_path: ''
+
+    # ── robot_description override ─────────────────────────────────────────────
+    #
+    # robot_description  (string, optional)
+    #   Full URDF XML string.  Normally left empty; the node reads it from
+    #   the kortex bringup via the xacro fallback.  Only set this if you
+    #   need to provide a custom robot model.
+    robot_description: ''

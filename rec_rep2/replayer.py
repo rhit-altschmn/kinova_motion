@@ -1,31 +1,20 @@
 import rclpy
-import json
 import sys
 from rclpy.node import Node
 from trajectory_msgs.msg import JointTrajectory, JointTrajectoryPoint
 from builtin_interfaces.msg import Duration
+from classic_bags import Bag
 
 # This topic is consumed by the joint_trajectory_controller.
 # Verify with: ros2 topic list | grep trajectory
-# Some kortex setups prefix with /gen3/ -- check your setup.
+# Apparently some kortex setups prefix with /gen3/ so todo=double check setup.
 CONTROLLER_TOPIC = (
     '/joint_trajectory_controller/joint_trajectory'
 )
 
 class MotionReplayer(Node):
-    """
-    Reads a JSON trajectory produced by MotionRecorder and
-    publishes it to the joint_trajectory_controller.
-
-    The controller accepts trajectory_msgs/JointTrajectory
-    over a topic or via the FollowJointTrajectory action.
-    We use the simpler topic interface here.
-
-    Reference:
-      control.ros.org/humble/doc/ros2_controllers/
-        joint_trajectory_controller/doc/userdoc.html
-    """
-
+    # see readme for notes on class
+    
     def __init__(self):
         super().__init__('motion_replayer')
         self.pub = self.create_publisher(
@@ -35,32 +24,29 @@ class MotionReplayer(Node):
         )
         self.get_logger().info('Motion Replayer ready.')
 
-        # --- Continued inside MotionReplayer class ---
-
     def replay(self, filepath: str, speed: float = 1.0):
         """
-        filepath : path to JSON file from recorder
+        filepath : path to bag directory from recorder
         speed    : 1.0 = real-time, 0.5 = half, 2.0 = double
                    Speed scaling works by dividing each waypoint
                    timestamp by the speed factor.
         """
-        with open(filepath) as f:
-            data = json.load(f)
-
         traj = JointTrajectory()
-        traj.joint_names = data['joints']
+        t0_ns = None
 
-        for wp in data['trajectory']:
-            pt = JointTrajectoryPoint()
-            pt.positions = wp['q']   # 7 joint angles in radians
-
-            # Scale timestamp
-            t = wp['t'] / speed
-            pt.time_from_start = Duration(
-                sec=int(t),
-                nanosec=int((t - int(t)) * 1_000_000_000),
-            )
-            traj.points.append(pt)
+        with Bag(filepath) as bag:
+            for _, msg, ts in bag.read_messages('/joint_states'):
+                if t0_ns is None:
+                    t0_ns = int(ts)
+                    traj.joint_names = list(msg.name)
+                t = (int(ts) - t0_ns) / (speed * 1e9)
+                pt = JointTrajectoryPoint()
+                pt.positions = list(msg.position)
+                pt.time_from_start = Duration(
+                    sec=int(t),
+                    nanosec=int((t - int(t)) * 1_000_000_000),
+                )
+                traj.points.append(pt)
 
         self.get_logger().info(
             f'Publishing {len(traj.points)} waypoints '
@@ -76,7 +62,7 @@ def main(args=None):
     node = MotionReplayer()
     if len(sys.argv) < 2:
         node.get_logger().error(
-            'Usage: replayer <path_to_json> [speed_factor]'
+            'Usage: replayer <path_to_bag> [speed_factor]'
         )
         return
     speed = float(sys.argv[2]) if len(sys.argv) > 2 else 1.0
