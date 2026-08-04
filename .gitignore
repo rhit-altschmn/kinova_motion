@@ -2,6 +2,11 @@ __pycache__/
 *.pyc
 *.egg-info/
 .vscode/
+<<<<<<< HEAD
 build/
 install/
 log/
+=======
+
+bags/
+>>>>>>> cad5274a15c99311e866ab9d185d34479f091ba4

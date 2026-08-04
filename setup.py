@@ -10,6 +10,16 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
+        ('share/' + package_name + '/launch', [
+            'launch/rec_rep2.launch.py',
+            'launch/replayer_only.launch.py',
+            'launch/fake_hardware.launch.py',
+        ]),
+        ('share/' + package_name + '/config', [
+            'config/compliant_params.yaml',
+        ]),
+        ('share/' + package_name + '/scripts',
+            ['scripts/launch_gui.sh']),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
@@ -24,6 +34,11 @@ setup(
     },
     entry_points={
         'console_scripts': [
+            'recorder = rec_rep2.recorder:main',
+            'replayer = rec_rep2.replayer:main',
+            'gui = rec_rep2.gui:main',
+            'fake_joint_states = rec_rep2.fake_joint_states:main',
+            'fake_replayer = rec_rep2.fake_replayer:main',
         ],
     },
 )
